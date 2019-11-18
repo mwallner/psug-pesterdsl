@@ -1,6 +1,8 @@
 
 # creating a custom DSL with PowerShell and Pester for your infrastructure tests
 
+[Kudos! - Kevin Marquette](https://powershellexplained.com/2017-02-26-Powershell-DSL-intro-to-domain-specific-languages-part-1/)
+
 ## why pester
 
 => because we already do use PowerShell to setup our hosts, drive our build-pipelines, gather statistics, rule the world, ...
