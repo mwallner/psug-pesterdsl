@@ -73,7 +73,7 @@ function Get-StoredCredential($ComputerName) {
 {
   $test = {
     $ErrorActionPreference = "Stop"
-    $ComputerNames = @("localhost", "127.0.0.1", "::1")
+    $ComputerNames = @("localhost")
 
     foreach ($c in $ComputerNames) {
       $creds = Get-StoredCredential $c
@@ -96,7 +96,7 @@ function Get-StoredCredential($ComputerName) {
 {
   $test = {
     $ErrorActionPreference = "Stop"
-    $ComputerNames = @("localhost", "127.0.0.1", "::1")
+    $ComputerNames = @("localhost")
     $Services = @("WinRm")
 
     foreach ($c in $ComputerNames) {
@@ -198,7 +198,7 @@ function Get-StoredCredential($ComputerName) {
       $serviceNames | Foreach-Object { 
         Write-Verbose "check service $_ " 
         It "has service '$_' installed and running" {
-          $s = Invoke-Command @t_ica -ScriptBlock {
+          $s = Invoke-Command @global:t_ica -ScriptBlock {
             param($svc)
             Get-Service -Name $svc
           } -ArgumentList $_
@@ -216,25 +216,24 @@ function Get-StoredCredential($ComputerName) {
       $pkgs = $Packages -split " " | ForEach-Object { if ($_) { $_ } }
       
       It "has no packages in lib-bad" {
-        Invoke-Command @t_ica -ScriptBlock {
+        Invoke-Command @global:t_ica -ScriptBlock {
           (Get-ChildItem "C:\ProgramData\chocolatey\lib-bad").Count
         } | Should -Be 0
       }
       $allPkgs = Invoke-Command @t_ica -ScriptBlock {
-        (choco list -lo -r) | ForEach-Object { $_.Split("|")[0] }
+        (Get-ChildItem "C:\ProgramData\chocolatey\lib").Name
       }
-      
       $pkgs | Foreach-Object { 
         Write-Verbose "check choco pkg $_ "
         It "has chocolatey package '$_' installed" {
-          $allPkgs | Should -Contain $_
+          $_ | Should -BeIn $allPkgs
         }
       }
     }
 
     Host "localhost" {
       Services { WinRM WSearch }
-      Chocolatey { Firefox notepadplusplus } 
+      Chocolatey { FiraCode vscode gnuwin32-coreutils.install notepadplusplus }
     }
     Host "ServerX" {
       Services { IISManager ChocolateyAgent }

@@ -174,3 +174,127 @@ Host "ServerY" {
   Chocolatey { Firefox }
 }
 ```
+
+### the finished micro-module
+
+put the following content into a powershell module file (i.e. `MYPSInfra.psm1`).
+
+```PowerShell
+function Get-StoredCredential($ComputerName) {
+  $ComputerName = $ComputerName -replace "::", "_"
+  Import-Clixml -Path "secrets/$ComputerName.clixml"
+}
+
+function Host {
+  param(
+    [Parameter(Mandatory, Position = 1)]
+    [string] $ComputerName,
+    [Parameter(Mandatory, Position = 2)]
+    [scriptblock]$ScriptBlock
+  )
+  Write-Verbose "Host '$ComputerName'"
+  Write-Verbose "ScriptBlock: '$($ScriptBlock.ToString())'"
+  Describe "Host '$ComputerName'" {
+    $global:t_ica = @{
+      ComputerName = $ComputerName
+      Credential   = Get-StoredCredential $ComputerName
+    }
+    $ScriptBlock.Invoke()
+  }
+}
+
+function Services {
+  param(
+    [Parameter(Mandatory, Position = 1)]
+    [scriptblock]$Services
+  )
+  $serviceNames = $Services -split " " | ForEach-Object { 
+    $v = $_.Trim(); if ( $v) { $v }
+  }
+  $serviceNames | Foreach-Object { 
+    Write-Verbose "check service $_ " 
+    It "has service '$_' installed and running" {
+      $s = Invoke-Command @global:t_ica -ScriptBlock {
+        param($svc)
+        Get-Service -Name $svc
+      } -ArgumentList $_
+      $s | Should -Not -BeNullOrEmpty
+      $s.Status | Should -Be "Running"
+    }
+  }
+}
+
+function Chocolatey {
+  param(
+    [Parameter(Mandatory, Position = 1)]
+    [scriptblock]$Packages
+  )
+  $pkgs = $Packages -split " " | ForEach-Object {
+    $v = $_.Trim(); if ( $v) { $v }
+  }
+  
+  It "has no packages in lib-bad" {
+    Invoke-Command @global:t_ica -ScriptBlock {
+      (Get-ChildItem "C:\ProgramData\chocolatey\lib-bad").Count
+    } | Should -Be 0
+  }
+  $allPkgs = Invoke-Command @t_ica -ScriptBlock {
+    (Get-ChildItem "C:\ProgramData\chocolatey\lib").Name
+  }
+  $pkgs | Foreach-Object {
+    Write-Verbose "check choco pkg $_ "
+    It "has chocolatey package '$_' installed" {
+      $_ | Should -BeIn $allPkgs
+    }
+  }
+}
+```
+
+Create your infra testing file (i.e. `myorg.infra.Tests.ps1`)
+
+```PowerShell
+Import-Module $(Join-Path $PSScriptRoot "MYPSInfra.psm1") -Force
+
+Host "buidSrv01" {
+  Services { WinRM ChocolateyAgent }
+  Chocolatey { git vs2019-buildtools vscode steam }
+}
+Host "buidSrv42" {
+  Services { WinRM ChocolateyAgent IISManager }
+  Chocolatey { git vs2019-buildtools vscode steam }
+}
+Host "ADCtrl0023" {
+  Services { WinRM IISManager WSearch }
+  Chocolatey { doom }
+}
+```
+
+### running the tests
+
+```PowerShell
+Invoke-Pester "./myorg.infra.Tests.ps1"
+```
+
+... looks nice, but is actually not very useful in automated scenarios, check Invoke-Pester's parameter list!
+
+`-PassThru`, `-OutputFormat NUnitXml` etc. give you a lot of options to work with.
+
+## creating fancy reports using `ReportUnit`
+
+[ReportUnit on GitHub](https://github.com/reportunit/reportunit) 
+
+* latest binary on [NuGet.org](https://www.nuget.org/packages/ReportUnit/1.5.0-beta1)
+
+To create a "fancy dashboard" from the test results, make sure to save the results as NUnitXml first.
+
+```PowerShell
+New-Item -type Directory results | Out-Null
+Invoke-Pester "./myorg.infra.Tests.ps1" -OutputFormat NUnitXml -OutputFile "./results/infra.res.xml"
+```
+
+Now, we can use `ReportUnit.exe` to create some pretty HTML from the generated `infra.res.xml`.
+
+```PowerShell
+New-Item -type Directory dashboard | Out-Null
+.\tools\ReportUnit.exe .\results\ .\dashboard\
+```
