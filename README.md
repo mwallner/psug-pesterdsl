@@ -298,3 +298,5 @@ Now, we can use `ReportUnit.exe` to create some pretty HTML from the generated `
 New-Item -type Directory dashboard | Out-Null
 .\tools\ReportUnit.exe .\results\ .\dashboard\
 ```
+
+Inspect the folder `./dashboard`, joy!
