@@ -7,7 +7,6 @@ function Get-StoredCredential($ComputerName) {
 }
 # $(Get-Credential) | Export-Clixml "$ComputerName.clixml"
 
-
 ## basic example
 {
   $test = {
@@ -57,7 +56,9 @@ function Get-StoredCredential($ComputerName) {
     Describe "host '$ComputerName'" {
       It "has no failed Chocolatey installs" {
         Invoke-Command -ComputerName $ComputerName -Credential $creds -ScriptBlock {
-          Get-ChildItem "C:\ProgramData\chocolatey\lib-bad"
+          if (Test-Path "C:\ProgramData\chocolatey\lib-bad") {
+            Get-ChildItem "C:\ProgramData\chocolatey\lib-bad"
+          }
         } | Should -BeNullOrEmpty
       }
     }
@@ -69,18 +70,20 @@ function Get-StoredCredential($ComputerName) {
 
 
 
-## checking for broken package installs
+## checking for broken package installs (remote host)
 {
   $test = {
     $ErrorActionPreference = "Stop"
-    $ComputerNames = @("localhost")
+    $ComputerNames = @("localhost", "::1")
 
     foreach ($c in $ComputerNames) {
       $creds = Get-StoredCredential $c
       Describe "host '$c'" {
         It "has no failed Chocolatey installs" {
           Invoke-Command -ComputerName $c -Credential $creds -ScriptBlock {
-            Get-ChildItem "C:\ProgramData\chocolatey\lib-bad"
+            if (Test-Path "C:\ProgramData\chocolatey\lib-bad") {
+              Get-ChildItem "C:\ProgramData\chocolatey\lib-bad"
+            }
           } | Should -BeNullOrEmpty
         }
       }
@@ -96,8 +99,8 @@ function Get-StoredCredential($ComputerName) {
 {
   $test = {
     $ErrorActionPreference = "Stop"
-    $ComputerNames = @("localhost")
-    $Services = @("WinRm")
+    $ComputerNames = @("localhost", "::1")
+    $Services = @("WinRm", "foobar")
 
     foreach ($c in $ComputerNames) {
       $creds = Get-StoredCredential $c
@@ -106,7 +109,7 @@ function Get-StoredCredential($ComputerName) {
           It "has service '$s' installed and running" {
             Invoke-Command -ComputerName $c -Credential $creds -ScriptBlock {
               param($s)
-              (Get-Service $s).Status
+              (Get-Service -Name $s).Status.toString()
             } -ArgumentList $s | Should -Be "Running"
           }
         }
@@ -136,7 +139,7 @@ function Get-StoredCredential($ComputerName) {
         }
       }
     }
-    
+
     function Chocolatey {
       param(
         [Parameter(Mandatory, Position = 1)]
@@ -145,7 +148,9 @@ function Get-StoredCredential($ComputerName) {
       $pkgs = $Packages -split " " | ForEach-Object { if ($_) { $_ } }
       
       It "has no packages in lib-bad" {
-        (Get-ChildItem "C:\ProgramData\chocolatey\lib-bad").Count | Should -Be 0
+        if (Test-Path "C:\ProgramData\chocolatey\lib-bad") {
+          (Get-ChildItem "C:\ProgramData\chocolatey\lib-bad").Count | Should -Be 0
+        }
       }
       $allPkgs = (choco list -lo -r) | ForEach-Object { $_.Split("|")[0] }
       $pkgs | Foreach-Object { 
