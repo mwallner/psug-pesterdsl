@@ -1,13 +1,19 @@
 
 # creating a custom DSL with PowerShell and Pester for your infrastructure tests
 
-[Kudos! - Kevin Marquette](https://powershellexplained.com/2017-02-26-Powershell-DSL-intro-to-domain-specific-languages-part-1/)
+* [Kudos! - Kevin Marquette](https://powershellexplained.com/2017-02-26-Powershell-DSL-intro-to-domain-specific-languages-part-1/) (amazing blog post(s) about PowerShell DSL)
+* [Pester](https://github.com/pester/Pester)
+* [Troubleshooting PowerShell Remoting](http://www.hurryupandwait.io/blog/understanding-and-troubleshooting-winrm-connection-and-authentication-a-thrill-seekers-guide-to-adventure)
 
 ## why pester
 
 => because we already do use PowerShell to setup our hosts, drive our build-pipelines, gather statistics, rule the world, ...
 
-## minimal example
+## why not `Remotely`
+
+=> because I do not like it. (you might do, find out at [GitHub](https://github.com/PowerShell/Remotely))
+
+## PowerShell Unit Tests - minimal example
 
 Have some `Describe` blocks with some `It` checks inside.
 

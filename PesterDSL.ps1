@@ -5,7 +5,8 @@ function Get-StoredCredential($ComputerName) {
   $ComputerName = $ComputerName -replace "::", "_"
   Import-Clixml -Path "secrets/$ComputerName.clixml"
 }
-# $(Get-Credential) | Export-Clixml "$ComputerName.clixml"
+# $(Get-Credential) | Export-Clixml "secrets/$ComputerName.clixml"
+
 
 ## basic example
 {
@@ -25,7 +26,8 @@ function Get-StoredCredential($ComputerName) {
   $test.ToString() | Out-File $mytestname
   Invoke-Pester $mytestname
 }
- 
+
+
 ## testing network connectivity
 {
   $test = {
@@ -45,6 +47,7 @@ function Get-StoredCredential($ComputerName) {
   $test.ToString() | Out-File $mytestname
   Invoke-Pester $mytestname
 }
+
 
 ## checking for broken package installs
 {
@@ -69,12 +72,11 @@ function Get-StoredCredential($ComputerName) {
 }
 
 
-
 ## checking for broken package installs (remote host)
 {
   $test = {
     $ErrorActionPreference = "Stop"
-    $ComputerNames = @("localhost", "::1")
+    $ComputerNames = @("localhost", "::1", "127.0.0.1")
 
     foreach ($c in $ComputerNames) {
       $creds = Get-StoredCredential $c
@@ -120,6 +122,7 @@ function Get-StoredCredential($ComputerName) {
   $test.ToString() | Out-File $mytestname
   Invoke-Pester $mytestname
 }
+
 
 ## DSL - draft #1
 {
@@ -170,6 +173,7 @@ function Get-StoredCredential($ComputerName) {
   $test.ToString() | Out-File $mytestname
   Invoke-Pester $mytestname
 }
+
 
 ## DSL - draft #2 (introducing remote checks with 'Host')
 {
@@ -254,6 +258,6 @@ function Get-StoredCredential($ComputerName) {
   Invoke-Pester $mytestname
 }
 
-## DSL - adding groups / categories
+## DSL - adding groups / categories ?
 
-## rubbing a little CI on the mix
+## CI - Jenkins?
